@@ -4,7 +4,6 @@ import android.hardware.Camera;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
-import android.util.Log;
 
 /**
  * Thread that used for working with camera callbacks.

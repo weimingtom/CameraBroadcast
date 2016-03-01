@@ -24,7 +24,6 @@ public class FragmentVideoBroadcast extends Fragment{
     private ViewGroup rootView;
     private VideoHandlerThread videoThread;
     private Handler uiHandler;
-    private CameraPreview cameraPreview;
     private Recorder recorder;
     private Camera camera;
 
@@ -42,7 +41,7 @@ public class FragmentVideoBroadcast extends Fragment{
 
     private void createSurfaceView(Camera camera) {
         this.camera = camera;
-        cameraPreview = new CameraPreview(getActivity(), camera, previewStartedListener);
+        CameraPreview cameraPreview = new CameraPreview(getActivity(), camera, previewStartedListener);
         rootView.addView(cameraPreview);
     }
 
