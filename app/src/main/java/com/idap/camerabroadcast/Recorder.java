@@ -18,23 +18,23 @@ import org.bytedeco.javacv.FrameRecorder;
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 
+@SuppressWarnings("deprecation")
 public class Recorder implements Camera.PreviewCallback{
 
     private static final String TAG = "Recorder";
-    private String ffmpeg_link = "rtmp://188.166.72.133:1934/live/stream";
+    private static final String TEST_LINK = "rtmp://188.166.72.133:1934/live/stream";
+    private static final int SAMPLE_AUDIO_RATE_IN_HZ = 44100;
+    private static final int FRAME_RATE = 30;
+
+    private final  Camera.Size mPreviewSize;
 
     private Frame yuvImage;
     private FFmpegFrameRecorder recorder;
-    private int sampleAudioRateInHz = 44100;
-    private int frameRate = 30;
     private FFmpegFrameFilter filter;
     private long startTime;
     private boolean recording;
-    private AudioRecord audioRecord;
     private boolean runAudioThread;
-    private AudioRecordRunnable audioRecordRunnable;
     private Thread audioThread;
-    private Camera.Size mPreviewSize;
     private int screenOrientation;
 
     public Recorder(Camera.Size previewSize) {
@@ -72,14 +72,14 @@ public class Recorder implements Camera.PreviewCallback{
         Log.i(TAG, "create yuvImage");
 
 
-        recorder = new FFmpegFrameRecorder(ffmpeg_link, mPreviewSize.width, mPreviewSize.height,1);
+        recorder = new FFmpegFrameRecorder(TEST_LINK, mPreviewSize.width, mPreviewSize.height,1);
 
         recorder.setFormat("flv");
         recorder.setVideoCodec(avcodec.AV_CODEC_ID_H264);
         recorder.setVideoOption("preset", "ultrafast");
         recorder.setVideoBitrate(1500000);
-        recorder.setSampleRate(sampleAudioRateInHz);
-        recorder.setFrameRate(frameRate);
+        recorder.setSampleRate(SAMPLE_AUDIO_RATE_IN_HZ);
+        recorder.setFrameRate(FRAME_RATE);
 
 
         filter = new FFmpegFrameFilter("transpose=clock", mPreviewSize.width, mPreviewSize.height);
@@ -90,7 +90,7 @@ public class Recorder implements Camera.PreviewCallback{
             e.printStackTrace();
         }
 
-        audioRecordRunnable = new AudioRecordRunnable();
+        AudioRecordRunnable audioRecordRunnable = new AudioRecordRunnable();
         audioThread = new Thread(audioRecordRunnable);
         runAudioThread = true;
     }
@@ -163,9 +163,9 @@ public class Recorder implements Camera.PreviewCallback{
             ShortBuffer audioData;
             int bufferReadResult;
 
-            bufferSize = AudioRecord.getMinBufferSize(sampleAudioRateInHz,
+            bufferSize = AudioRecord.getMinBufferSize(SAMPLE_AUDIO_RATE_IN_HZ,
                     AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
-            audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, sampleAudioRateInHz,
+            AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_AUDIO_RATE_IN_HZ,
                     AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize);
 
             audioData = ShortBuffer.allocate(bufferSize);
@@ -196,12 +196,9 @@ public class Recorder implements Camera.PreviewCallback{
             Log.v(TAG,"AudioThread Finished, release audioRecord");
 
             /* encoding finish, release recorder */
-            if (audioRecord != null) {
-                audioRecord.stop();
-                audioRecord.release();
-                audioRecord = null;
-                Log.v(TAG,"audioRecord released");
-            }
+            audioRecord.stop();
+            audioRecord.release();
+            Log.v(TAG,"audioRecord released");
         }
     }
 }

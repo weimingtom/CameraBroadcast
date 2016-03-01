@@ -7,9 +7,12 @@ import android.os.Message;
 import android.util.Log;
 
 /**
- * Created by vladimirkondratenko on 2/29/16.
+ * Thread that used for working with camera callbacks.
+ * Camera callbacks will be called in this thread, because we open camera here.
+ *
  */
-public class VideoHandlerThread extends HandlerThread implements Camera.PreviewCallback {
+@SuppressWarnings("deprecation")
+public class VideoHandlerThread extends HandlerThread  {
 
     public static final int CAMERA_OPENED = 1;
     private final Handler uiHandler;
@@ -41,11 +44,5 @@ public class VideoHandlerThread extends HandlerThread implements Camera.PreviewC
     private void notifyCameraOpened(Camera camera) {
         Message message = uiHandler.obtainMessage(CAMERA_OPENED, camera);
         uiHandler.sendMessage(message);
-    }
-
-
-    @Override
-    public void onPreviewFrame(byte[] data, Camera camera) {
-        Log.d(FragmentVideoBroadcast.TAG, "onPreviewFrame, threadId: " + Thread.currentThread().getId());
     }
 }
