@@ -5,7 +5,6 @@ import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +15,7 @@ import java.lang.ref.WeakReference;
 /**
  * Video broadcast fragment
  */
+@SuppressWarnings("deprecation")
 public class FragmentVideoBroadcast extends Fragment{
 
     public static final String TAG = "FragmentVideoBroadcast";
@@ -25,9 +25,24 @@ public class FragmentVideoBroadcast extends Fragment{
     private VideoHandlerThread videoThread;
     private Handler uiHandler;
     private CameraPreview cameraPreview;
+    private Recorder recorder;
+    private Camera camera;
+
+    CameraPreview.OnPreviewStartedListener previewStartedListener = new CameraPreview.OnPreviewStartedListener() {
+        @Override
+        public void onPreviewStarted(Camera.Size previewSize) {
+            if(recorder == null){
+                recorder = new Recorder(previewSize);
+            }
+
+            camera.setPreviewCallback(recorder);
+            startRecording();
+        }
+    };
 
     private void createSurfaceView(Camera camera) {
-        cameraPreview = new CameraPreview(getActivity(), camera);
+        this.camera = camera;
+        cameraPreview = new CameraPreview(getActivity(), camera, previewStartedListener);
         rootView.addView(cameraPreview);
     }
 
@@ -68,7 +83,9 @@ public class FragmentVideoBroadcast extends Fragment{
     }
 
     public void startRecording(){
-        cameraPreview.startRecording();
+        if(recorder != null){
+            recorder.startRecording(getResources().getConfiguration().orientation);
+        }
     }
 
     @Override
@@ -78,7 +95,9 @@ public class FragmentVideoBroadcast extends Fragment{
 
     @Override
     public void onDestroy() {
-        cameraPreview.stopRecording();
+        if(recorder != null) {
+            recorder.stopRecording();
+        }
         videoThread.quit();
         super.onDestroy();
     }
