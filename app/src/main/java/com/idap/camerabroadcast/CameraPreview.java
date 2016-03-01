@@ -1,31 +1,20 @@
 package com.idap.camerabroadcast;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.hardware.Camera;
-import android.media.AudioFormat;
-import android.media.AudioRecord;
-import android.media.MediaRecorder;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
-import org.bytedeco.javacpp.avcodec;
-import org.bytedeco.javacpp.avutil;
-import org.bytedeco.javacv.FFmpegFrameFilter;
-import org.bytedeco.javacv.FFmpegFrameRecorder;
-import org.bytedeco.javacv.Frame;
-import org.bytedeco.javacv.FrameFilter;
-import org.bytedeco.javacv.FrameRecorder;
-
-import java.nio.ByteBuffer;
-import java.nio.ShortBuffer;
 import java.util.List;
 
 
 /**
- * Created by vladimirkondratenko on 2/29/16.
+ * CameraPreview view.
  */
+@SuppressLint("ViewConstructor")
 @SuppressWarnings("deprecation")
 public class CameraPreview extends SurfaceView
         implements SurfaceHolder.Callback {
@@ -33,76 +22,63 @@ public class CameraPreview extends SurfaceView
     private static final String TAG = "CameraPreview";
 
 
-    private SurfaceHolder mHolder;
-    private Camera mCamera;
+    private SurfaceHolder holder;
+    private Camera camera;
     private OnPreviewStartedListener previewCallback;
-    private List<Camera.Size> mSupportedPreviewSizes;
-    private Camera.Size mPreviewSize;
+    private List<Camera.Size> supportedPreviewSizes;
+    private Camera.Size previewSize;
 
     public CameraPreview(Context context, Camera camera, OnPreviewStartedListener callback) {
         super(context);
-        mCamera = camera;
+        this.camera = camera;
         previewCallback = callback;
 
-        // supported preview sizes
-        mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
-        for (Camera.Size str : mSupportedPreviewSizes)
+        supportedPreviewSizes = this.camera.getParameters().getSupportedPreviewSizes();
+        for (Camera.Size str : supportedPreviewSizes)
             Log.e(TAG, str.width + "/" + str.height);
 
-        // Install a SurfaceHolder.Callback so we get notified when the
-        // underlying surface is created and destroyed.
-        mHolder = getHolder();
-        mHolder.addCallback(this);
-        // deprecated setting, but required on Android versions prior to 3.0
-        mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        holder = getHolder();
+        holder.addCallback(this);
+        holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
     }
 
+    @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        // empty. surfaceChanged will take care of stuff
     }
 
     public void surfaceDestroyed(SurfaceHolder holder) {
-        // empty. Take care of releasing the Camera preview in your activity.
-        if (mCamera != null) {
-            mCamera.stopPreview();
-            mCamera.setPreviewCallback(null);
+        if (camera != null) {
+            camera.stopPreview();
+            camera.setPreviewCallback(null);
 
-            mCamera.release();
-            mCamera = null;
+            camera.release();
+            camera = null;
         }
     }
 
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
         Log.e(TAG, "surfaceChanged => w=" + w + ", h=" + h);
-        // If your preview can change or rotate, take care of those events here.
-        // Make sure to stop the preview before resizing or reformatting it.
-        if (mHolder.getSurface() == null) {
-            // preview surface does not exist
+        if (this.holder.getSurface() == null) {
             return;
         }
 
-        // stop preview before making changes
         try {
-            mCamera.stopPreview();
+            camera.stopPreview();
         } catch (Exception e) {
             // ignore: tried to stop a non-existent preview
         }
 
-        // set preview size and make any resize, rotate or reformatting changes here
-        // start preview with new settings
         try {
-            Camera.Parameters parameters = mCamera.getParameters();
-            parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
-            mCamera.setParameters(parameters);
+            Camera.Parameters parameters = camera.getParameters();
+            parameters.setPreviewSize(previewSize.width, previewSize.height);
+            camera.setParameters(parameters);
             if (getResources().getConfiguration().orientation
                     == Configuration.ORIENTATION_PORTRAIT) {
-                mCamera.setDisplayOrientation(90);
+                camera.setDisplayOrientation(90);
             }
-            mCamera.setPreviewDisplay(mHolder);
-            mCamera.startPreview();
-            previewCallback.onPreviewStarted(mPreviewSize);
-//            mCamera.setPreviewCallback(this);
-//            startRecording();
+            camera.setPreviewDisplay(this.holder);
+            camera.startPreview();
+            previewCallback.onPreviewStarted(previewSize);
 
         } catch (Exception e) {
             Log.d(TAG, "Error starting camera preview: " + e.getMessage());
@@ -112,20 +88,20 @@ public class CameraPreview extends SurfaceView
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        final int width = resolveSize(getSuggestedMinimumWidth(), widthMeasureSpec);
-        final int height = resolveSize(getSuggestedMinimumHeight(), heightMeasureSpec);
 
-        if (mSupportedPreviewSizes != null) {
-            mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, 640, 480);
+        if (supportedPreviewSizes != null) {
+            previewSize = getOptimalPreviewSize(supportedPreviewSizes, 640, 480);
         }
 
         float ratio;
-        if (mPreviewSize.height >= mPreviewSize.width)
-            ratio = (float) mPreviewSize.height / (float) mPreviewSize.width;
+        if (previewSize.height >= previewSize.width)
+            ratio = (float) previewSize.height / (float) previewSize.width;
         else
-            ratio = (float) mPreviewSize.width / (float) mPreviewSize.height;
+            ratio = (float) previewSize.width / (float) previewSize.height;
 
         // One of these methods should be used, second method squishes preview slightly
+        final int width = resolveSize(getSuggestedMinimumWidth(), widthMeasureSpec);
+//        final int height = resolveSize(getSuggestedMinimumHeight(), heightMeasureSpec);
         setMeasuredDimension(width, (int) (width * ratio));
 //        setMeasuredDimension((int) (width * ratio), height);
     }
@@ -140,25 +116,23 @@ public class CameraPreview extends SurfaceView
         Camera.Size optimalSize = null;
         double minDiff = Double.MAX_VALUE;
 
-        int targetHeight = h;
-
         for (Camera.Size size : sizes) {
             double ratio = (double) size.height / size.width;
             if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE)
                 continue;
 
-            if (Math.abs(size.height - targetHeight) < minDiff) {
+            if (Math.abs(size.height - h) < minDiff) {
                 optimalSize = size;
-                minDiff = Math.abs(size.height - targetHeight);
+                minDiff = Math.abs(size.height - h);
             }
         }
 
         if (optimalSize == null) {
             minDiff = Double.MAX_VALUE;
             for (Camera.Size size : sizes) {
-                if (Math.abs(size.height - targetHeight) < minDiff) {
+                if (Math.abs(size.height - h) < minDiff) {
                     optimalSize = size;
-                    minDiff = Math.abs(size.height - targetHeight);
+                    minDiff = Math.abs(size.height - h);
                 }
             }
         }
