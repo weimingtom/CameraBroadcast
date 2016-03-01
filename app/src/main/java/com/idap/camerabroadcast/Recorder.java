@@ -1,5 +1,6 @@
 package com.idap.camerabroadcast;
 
+import android.content.res.Configuration;
 import android.hardware.Camera;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
@@ -34,11 +35,23 @@ public class Recorder implements Camera.PreviewCallback{
     private AudioRecordRunnable audioRecordRunnable;
     private Thread audioThread;
     private Camera.Size mPreviewSize;
+    private int screenOrientation;
+
+    public Recorder(Camera.Size previewSize) {
+        mPreviewSize = previewSize;
+    }
 
 
+    public void startRecording(int screenOrientation) {
 
-    public void startRecording(Camera.Size mPreviewSize) {
-        this.mPreviewSize = mPreviewSize;
+        this.screenOrientation = screenOrientation;
+
+
+        if(recorder != null){
+            Log.d(TAG, "Recording already started");
+            return;
+        }
+
         initRecorder();
 
 
@@ -46,7 +59,7 @@ public class Recorder implements Camera.PreviewCallback{
             recorder.start();
             setRecording(true);
             startTime = System.currentTimeMillis();
-//            recording = true;
+            recording = true;
             audioThread.start();
 
         } catch (FFmpegFrameRecorder.Exception e) {
@@ -96,6 +109,7 @@ public class Recorder implements Camera.PreviewCallback{
         try {
             recorder.stop();
             recorder.release();
+            runAudioThread = false;
         } catch (FFmpegFrameRecorder.Exception e) {
             e.printStackTrace();
         }
@@ -120,11 +134,15 @@ public class Recorder implements Camera.PreviewCallback{
             recorder.setTimestamp(t);
 
             try {
-                filter.push(yuvImage);
-                Frame frame;
-                while ((frame = filter.pull()) != null) {
-                    recorder.record(frame);
-                    Log.d(TAG, "frameRecorded");
+                if(screenOrientation == Configuration.ORIENTATION_PORTRAIT){
+                    filter.push(yuvImage);
+                    Frame frame;
+                    while ((frame = filter.pull()) != null) {
+                        recorder.record(frame);
+                        Log.d(TAG, "frameRecorded");
+                    }
+                }else{
+                    recorder.record(yuvImage);
                 }
             } catch (FrameFilter.Exception | FrameRecorder.Exception e) {
                 e.printStackTrace();
