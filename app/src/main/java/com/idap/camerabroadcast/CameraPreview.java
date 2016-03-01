@@ -110,7 +110,7 @@ public class CameraPreview extends SurfaceView
             mCamera.setPreviewDisplay(mHolder);
             mCamera.startPreview();
             mCamera.setPreviewCallback(this);
-            startRecording();
+//            startRecording();
 
         } catch (Exception e) {
             Log.d(TAG, "Error starting camera preview: " + e.getMessage());
@@ -196,6 +196,7 @@ public class CameraPreview extends SurfaceView
 
 
         recorder = new FFmpegFrameRecorder(ffmpeg_link, mPreviewSize.width, mPreviewSize.height,1);
+
         recorder.setFormat("flv");
         recorder.setVideoCodec(avcodec.AV_CODEC_ID_H264);
         recorder.setVideoOption("preset", "ultrafast");

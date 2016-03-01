@@ -10,6 +10,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import java.lang.ref.WeakReference;
+
 
 /**
  * Video broadcast fragment
@@ -21,22 +23,19 @@ public class FragmentVideoBroadcast extends Fragment{
     private static final String VIDEO_THREAD_NAME = "VIDEO_THREAD_NAME";
     private ViewGroup rootView;
     private VideoHandlerThread videoThread;
-    private Handler uiHandler = new Handler(){
-        @Override
-        public void dispatchMessage(Message msg) {
-            switch (msg.what){
-                case  VideoHandlerThread.CAMERA_OPENED:
-                    Camera camera = (Camera) msg.obj;
-                    createSurfaceView(camera);
-                    break;
-            }
-        }
-    };
+    private Handler uiHandler;
     private CameraPreview cameraPreview;
 
     private void createSurfaceView(Camera camera) {
         cameraPreview = new CameraPreview(getActivity(), camera);
         rootView.addView(cameraPreview);
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        uiHandler = new UiHandler(this);
+        setRetainInstance(true);
     }
 
     public static FragmentVideoBroadcast newInstance() {
@@ -58,13 +57,13 @@ public class FragmentVideoBroadcast extends Fragment{
         this.rootView = (ViewGroup) view;
         videoThread = new VideoHandlerThread(uiHandler, VIDEO_THREAD_NAME);
         videoThread.openCamera();
-
-//        uiHandler.postDelayed(new Runnable() {
-//            @Override
-//            public void run() {
+        uiHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
 //                startRecording();
-//            }
-//        }, 2000);
+            }
+        }, 2000);
+
 
     }
 
@@ -74,13 +73,40 @@ public class FragmentVideoBroadcast extends Fragment{
 
     @Override
     public void onPause() {
-        cameraPreview.stopRecording();
         super.onPause();
     }
 
     @Override
     public void onDestroy() {
+        cameraPreview.stopRecording();
         videoThread.quit();
         super.onDestroy();
+    }
+
+    public  static class UiHandler extends Handler{
+
+        private WeakReference<FragmentVideoBroadcast> fragment;
+
+        public UiHandler(FragmentVideoBroadcast fragment) {
+            this.fragment = new WeakReference<>(fragment);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what){
+                case  VideoHandlerThread.CAMERA_OPENED:
+                    openCamera(msg);
+                    break;
+            }
+        }
+
+        private void openCamera(Message msg) {
+            if(fragment != null && fragment.get() != null){
+                Camera camera = (Camera) msg.obj;
+                fragment.get().createSurfaceView(camera);
+            }
+        }
+
+
     }
 }
