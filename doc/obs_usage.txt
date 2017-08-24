@@ -1,0 +1,105 @@
+
+萝莉矿
+挖掘萝莉与技术的二次元世界
+
+跳至内容
+?首页
+?
+?技术宅
+?
+?wikioi
+?
+?福利
+?
+?来鞭打我吧！
+搜索：
+我终于可以躺床上玩Galgame计划
+2015年1月19日技术宅galgame、OBS、RTMP
+
+image from pixiv id:38149525
+这里针对的是有一台台式机/笔记本，想要流畅的在手机上看电脑上的内容（galgame/视频等）的解决方案_(:з)∠)_
+之前一直是用VNC解决的，但是VNC的低&缓慢的刷新频率让我无法忍受，经常我一句话还没看到就已经到下一个了……而且没法传输声音，效果非常不理想
+现在我使用的是现在各种直播站的使用的解决方案，使用RTMP协议来传送压缩后的视频&音频流，这样就可以完美享受了w
+软件需求
+OBS (https://obsproject.com/download)
+Nginx-with-rtmp-module (http://nginx-win.ecsds.eu/) 这里是提供的已编译的windows版本
+RTMP服务器设置
+这里使用的是Nginx作为RTMP服务器
+下载上面的压缩包，解压
+在conf文件夹下新建nginx.conf，文件中输入以下内容
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24	#user? nobody;
+worker_processes? 1;
+?
+#error_log? logs/error.log;
+#error_log? logs/error.log? notice;
+#error_log? logs/error.log? info;
+?
+#pid??????? logs/nginx.pid;
+?
+?
+events {
+????worker_connections? 1024;
+}
+?
+?
+rtmp {
+????server {
+????????listen 6567;
+?????????
+????????application livegal {
+????????????live on;
+????????}
+????}
+}
+然后返回上一层目录，运行nginx.exe，就配置完成了
+OBS
+下载OBS，然后打开，点设定按钮
+由于内网传输一切性能设置无视，直接到广播设定，按下图设置FMS URL
+
+串流码那部分随意，但要记住设定的是什么
+切换到音效，由于我们只是玩galgame不需要传输麦克风的声音，所以停用麦克风
+保存，关闭，返回主界面
+在主界面来源那个白色框里右键 -> 添加 -> 显示器获取，然后一路确定
+点击开始串流，如果右下角出现绿色方块即表示成功
+手机端
+这里以Android为例，ios选择合适播放器也应该可以（例如avplayer）
+Android下这里使用MXPlayer
+打开MXPlayer，右上角，选择网络流，输入rtmp://电脑ip/livegal/串流码
+等待缓冲后即可看见了w
+?
+最后来说一下这个方案的缺点
+没法实时控制鼠标/键盘
+由于即时压缩，对CPU要求较高
+不过上面的问题对galgame影响都不大，所以这也是一个可以接受的解决方案了w
+?
+什么？你有Surface PRO？滚。
+
+
+
+
+文章导航
+←?C++ STL 数据结构笔记
+
